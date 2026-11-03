@@ -1,0 +1,24 @@
+id = "harrisonhjones.herdr-tui-agents-ctx"
+name = "Herdr Agents Context"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Show each agent's context-window usage in the Agents sidebar, by writing pane metadata tokens ($ctx_lo, $ctx_mid, $ctx_hi). Currently supports Claude Code."
+platforms = ["linux", "macos", "windows"]
+
+# No events: each agent's adapter writes the tokens when the agent reports (for Claude Code,
+# statusLine.command = `node agents-ctx.js claude-statusline ...`). The plugin only adds these actions.
+
+# herdr plugin action invoke harrisonhjones.herdr-tui-agents-ctx.clear
+# Remove every token this plugin wrote.
+[[actions]]
+id = "clear"
+title = "Clear agent context tokens"
+contexts = ["global"]
+command = ["node", "agents-ctx.js", "clear"]
+
+# Print each agent's context token, without changing anything.
+[[actions]]
+id = "doctor"
+title = "Print agent context usage (no changes)"
+contexts = ["global"]
+command = ["node", "agents-ctx.js", "doctor"]

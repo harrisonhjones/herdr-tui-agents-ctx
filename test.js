@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
-const { tierOf, reportArgs } = require('./agents-ctx.js');
+const { tierOf, reportArgs, contextPctFromPayload } = require('./agents-ctx.js');
 
 test('tierOf rounds down and picks the threshold token', () => {
   assert.deepEqual(tierOf(34.4), { name: 'ctx_lo', value: '34%' });
@@ -22,6 +22,21 @@ test('reportArgs sets one token and clears the other two', () => {
   ]);
 });
 
+test('contextPctFromPayload prefers used_percentage', () => {
+  assert.equal(contextPctFromPayload({ context_window: { used_percentage: 34.5 } }), 34.5);
+  assert.equal(contextPctFromPayload({ context_window: { used_percentage: 0 } }), 0);
+});
+
+test('contextPctFromPayload falls back to tokens over context_window_size', () => {
+  assert.equal(contextPctFromPayload({
+    context_window: { used_percentage: null, total_input_tokens: 50000, context_window_size: 200000 },
+  }), 25);
+  assert.equal(contextPctFromPayload({
+    context_window: { context_window_size: 200000, current_usage: { input_tokens: 100000 } },
+  }), 50);
+  assert.equal(contextPctFromPayload({ context_window: { total_input_tokens: 1 } }), null);
+});
+
 // End to end with a fake original command and no herdr pane.
 test('claude-statusline passes the original output and exit status through', () => {
   const env = { ...process.env };
@@ -36,4 +51,15 @@ test('claude-statusline passes the original output and exit status through', () 
   assert.equal(failed.stdout, 'partial');
   assert.equal(failed.status, 3);
   assert.equal(run('/nonexistent-command').status, 1);
+});
+
+test('cursor-statusline passes the original output and exit status through', () => {
+  const env = { ...process.env };
+  delete env.HERDR_PANE_ID;
+  const input = JSON.stringify({ session_id: 's2', context_window: { used_percentage: 44.1 } });
+  const run = (...cmd) => spawnSync(process.execPath, [path.join(__dirname, 'agents-ctx.js'), 'cursor-statusline', ...cmd],
+    { input, env, encoding: 'utf8' });
+  const echo = run(process.execPath, '-e', 'process.stdin.pipe(process.stdout)');
+  assert.equal(echo.stdout, input);
+  assert.equal(echo.status, 0);
 });

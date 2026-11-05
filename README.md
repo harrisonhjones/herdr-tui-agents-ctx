@@ -108,6 +108,23 @@ change without a restart. If `node` isn't on the PATH Claude runs its status lin
 
 **Disconnect** by restoring your original `statusLine.command`.
 
+**Idle sessions:** Claude Code only runs the status line on events (a new message, `/compact`, a permission or vim mode
+change), so a session left idle stops reporting and its percentage disappears after the 10-minute token TTL. To keep it
+showing, add [`refreshInterval`](https://code.claude.com/docs/en/statusline) (seconds) to the same `statusLine` block, so
+Claude re-runs the command on a timer even when idle:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "node /path/to/this/folder/agents-ctx.js claude-statusline <your current status line command>",
+  "refreshInterval": 120
+}
+```
+
+Keep it well under 10 minutes. An unchanged value is only re-sent once it is 5 minutes old, so any interval up to about
+4 minutes keeps the token alive. Each run also starts your original status line command, so don't set it lower than you
+need.
+
 **Latency:** the wrapper adds Node's startup time (tens of milliseconds on Linux) on top of your original status line
 command, and Claude waits for both. Nothing is cached. If the original is slow enough that Claude stops showing the
 status line, a cache could be added: print the session's previous output at once, with `Context: NN%` updated to the

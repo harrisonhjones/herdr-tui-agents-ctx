@@ -21,7 +21,7 @@ It runs side by side with [herdr-tui-agent-tree](https://github.com/harrisonhjon
 its own tokens under its own source (this one is `agents-ctx`), so neither one's updates or `clear` touch the other.
 
 Requires herdr >= 0.9.5 and Node (any recent version) on PATH. It is pure Node and calls herdr through
-`HERDR_BIN_PATH`. Tested on Linux, not yet Windows or macOS. Config path outside Windows:
+`HERDR_BIN_PATH`. Tested on Linux and Windows, not yet macOS. Config path outside Windows:
 `~/.config/herdr/config.toml`.
 
 ## Install
@@ -105,6 +105,19 @@ percentage.
 With no command after `claude-statusline`, it prints nothing and only reports. Running Claude sessions pick up the
 change without a restart. If `node` isn't on the PATH Claude runs its status line with, use its absolute path
 (`which node`).
+
+On Windows, use forward slashes in the path (Claude Code runs the command through Git Bash), and wrap whatever your
+status line already runs. For example, with a PowerShell status line script:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "node C:/Users/you/herdr-tui-agents-ctx/agents-ctx.js claude-statusline powershell -NoProfile -ExecutionPolicy Bypass -File C:/Users/you/.claude/statusline.ps1"
+}
+```
+
+Point it at a stable clone of this repo, not the folder `herdr plugin install` creates: that one sits under a versioned
+directory that changes on update. Verified on Windows 11 with herdr 0.9.5 and Node 24, with no code changes needed.
 
 **Disconnect** by restoring your original `statusLine.command`.
 

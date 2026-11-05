@@ -5,6 +5,7 @@
 //
 // Usage:
 //   node agents-ctx.js claude-statusline <original status line command...>   (Claude Code statusLine.command)
+//   node agents-ctx.js cursor-statusline <original status line command...>   (Cursor CLI statusLine.command)
 //   node agents-ctx.js clear|doctor                                            (plugin actions)
 'use strict';
 const { spawn, spawnSync } = require('node:child_process');
@@ -59,11 +60,27 @@ function report(pane, pct) {
   fs.writeFileSync(marker, key);
 }
 
-// Claude Code adapter. Claude Code passes its status line command a JSON blob on stdin that
-// includes context_window.used_percentage. This runs the original command with the same
-// stdin, its output going straight to Claude, then reports the percentage. Claude waits for
-// the original as it would without this wrapper; nothing is cached (see the README).
-function claudeStatusline(cmd) {
+// Cursor CLI and Claude Code pass their status line command a JSON blob on stdin
+// (StatusLinePayload) with context_window.used_percentage and related fields.
+function contextPctFromPayload(data) {
+  const cw = data && data.context_window;
+  if (!cw) return null;
+  const used = cw.used_percentage;
+  if (used != null && used !== '' && !Number.isNaN(Number(used))) return Number(used);
+  const size = Number(cw.context_window_size);
+  if (!(size > 0)) return null;
+  let tokens = cw.total_input_tokens;
+  if (tokens == null && cw.current_usage && typeof cw.current_usage === 'object') {
+    tokens = cw.current_usage.input_tokens ?? cw.current_usage.total_input_tokens;
+  }
+  if (tokens == null || Number.isNaN(Number(tokens))) return null;
+  return (Number(tokens) / size) * 100;
+}
+
+// Status line adapter shared by Claude Code and Cursor CLI. Runs the original command with
+// the same stdin, its output going straight to the agent, then reports the percentage. The
+// agent waits for the original as it would without this wrapper; nothing is cached (README).
+function statuslineAdapter(cmd) {
   const input = fs.readFileSync(0);
   let data = {};
   try { data = JSON.parse(input.toString('utf8')); } catch { /* not JSON: run the original only */ }
@@ -71,8 +88,16 @@ function claudeStatusline(cmd) {
     const r = spawnSync(cmd[0], cmd.slice(1), { input, stdio: ['pipe', 'inherit', 'inherit'], windowsHide: true });
     process.exitCode = r.error ? 1 : (r.status ?? 1);
   }
-  const pct = data.context_window && data.context_window.used_percentage;
+  const pct = contextPctFromPayload(data);
   try { report(process.env.HERDR_PANE_ID, pct); } catch { /* never break the status line */ }
+}
+
+function claudeStatusline(cmd) {
+  statuslineAdapter(cmd);
+}
+
+function cursorStatusline(cmd) {
+  statuslineAdapter(cmd);
 }
 
 function herdr(args) {
@@ -113,12 +138,13 @@ function doctor() {
 function main() {
   const [mode, ...rest] = process.argv.slice(2);
   if (mode === 'claude-statusline') return claudeStatusline(rest);
+  if (mode === 'cursor-statusline') return cursorStatusline(rest);
   if (mode === 'clear') return clear();
   if (mode === 'doctor') return doctor();
-  console.error('usage: node agents-ctx.js claude-statusline <command...> | clear | doctor');
+  console.error('usage: node agents-ctx.js claude-statusline | cursor-statusline <command...> | clear | doctor');
   process.exitCode = 2;
 }
 
 if (require.main === module) main();
 
-module.exports = { tierOf, reportArgs };
+module.exports = { tierOf, reportArgs, contextPctFromPayload };

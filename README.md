@@ -3,8 +3,8 @@
 Shows how much of its context window each agent has used, next to the agent in herdr's Agents sidebar, coloured by
 threshold. It draws nothing itself. It writes a per-pane metadata token that your sidebar layout renders.
 
-Currently it only supports [Claude Code](#claude-code). PRs that add other agents are welcome; see
-[Adding an agent](#adding-an-agent).
+Currently it supports [Claude Code](#claude-code) and the [Cursor CLI](#cursor). PRs that add other agents are
+welcome; see [Adding an agent](#adding-an-agent).
 
 ```
 ▾ my-project
@@ -142,6 +142,41 @@ need.
 command, and Claude waits for both. Nothing is cached. If the original is slow enough that Claude stops showing the
 status line, a cache could be added: print the session's previous output at once, with `Context: NN%` updated to the
 current value, and re-run the original in a detached process to refresh it.
+
+### Cursor
+
+Herdr's `cursor` agent kind runs the Cursor CLI in a pane, with `HERDR_PANE_ID` set. The Cursor CLI runs a status line
+command, configured like Claude Code's, and pipes it a JSON blob on stdin that includes `context_window.used_percentage`.
+`agents-ctx.js cursor-statusline` wraps your existing status line command the same way `claude-statusline` does: same
+stdin, and its output and exit status pass straight through, then it reports the percentage. When `used_percentage` is
+null (early in a session), it falls back to `total_input_tokens` (or `current_usage.input_tokens`) divided by
+`context_window_size`, using the window size from the payload.
+
+This was verified against the Cursor CLI on Windows. Cursor's public CLI configuration reference doesn't document the
+`statusLine` key or the stdin payload at the time of writing, so treat the field names as observed behavior that Cursor
+could change. The IDE Agent chat isn't covered: it has no status line command that this adapter can use.
+
+**Connect** by putting `node /path/to/this/folder/agents-ctx.js cursor-statusline` in front of your current
+`statusLine.command` in `~/.cursor/cli-config.json` (`%USERPROFILE%\.cursor\cli-config.json` on Windows):
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "node /path/to/this/folder/agents-ctx.js cursor-statusline <your current status line command>",
+  "padding": 2,
+  "updateIntervalMs": 300,
+  "timeoutMs": 2000
+}
+```
+
+Keep your existing `padding`, `updateIntervalMs` and `timeoutMs`. On Windows, use forward slashes in the paths. If the
+CLI can't find `node`, use its absolute path (`where node`). Restart the CLI in each pane after editing the file. With
+no command after `cursor-statusline`, it prints nothing and only reports.
+
+Tokens expire 10 minutes after the last report. It isn't documented whether the Cursor CLI re-runs its status line while
+a session is idle, so an idle Cursor agent may lose its percentage until it next reports.
+
+**Disconnect** by restoring your original `statusLine.command`.
 
 ### Adding an agent
 

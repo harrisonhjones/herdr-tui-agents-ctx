@@ -20,9 +20,9 @@ inside the agent's pane, where herdr sets `HERDR_PANE_ID`.
 It runs side by side with [herdr-tui-agent-tree](https://github.com/harrisonhjones/herdr-tui-agent-tree): each writes
 its own tokens under its own source (this one is `agents-ctx`), so neither one's updates or `clear` touch the other.
 
-Requires herdr >= 0.9.5 and Node (any recent version) on PATH. It is pure Node and calls herdr through
-`HERDR_BIN_PATH`. Tested on Linux and Windows, not yet macOS. Config path outside Windows:
-`~/.config/herdr/config.toml`.
+Requires herdr >= 0.9.5 and Node (any recent version) on PATH. It is pure Node and calls herdr through `HERDR_BIN_PATH`.
+Unit tests run in CI on Linux, Windows and macOS. Used with a live herdr on Linux and Windows, not yet macOS. Config
+path outside Windows: `~/.config/herdr/config.toml`.
 
 ## Install
 

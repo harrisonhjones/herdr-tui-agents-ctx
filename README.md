@@ -189,6 +189,25 @@ a plugin), and a way to read the used percentage there. To add one:
 2. Add a test to `test.js`.
 3. Add a section under [Agents](#agents) covering where the percentage comes from, and how to connect and disconnect.
 
+## Development
+
+The plugin has no runtime dependencies. The dev tooling is [oxfmt](https://oxc.rs/docs/guide/usage/formatter) (formatter)
+and [oxlint](https://oxc.rs/docs/guide/usage/linter) (linter), installed with `npm ci`. The repo's `.npmrc` pins the
+public npm registry.
+
+| Command                | What it does                                       |
+| ---------------------- | -------------------------------------------------- |
+| `npm run fix`          | Format all files and apply safe lint fixes         |
+| `npm run format`       | Format all files in place                          |
+| `npm run lint:fix`     | Apply safe lint fixes                              |
+| `npm run check`        | Format check, lint check and tests; what CI runs   |
+| `npm run format:check` | Fail if any file isn't formatted                   |
+| `npm run lint`         | Fail on any lint warning or error                  |
+| `npm test`             | Run the tests (`node --test`)                      |
+
+CI (`.github/workflows/ci.yml`) runs on pull requests and pushes to `main`: format check, lint, a sanity check of
+`herdr-plugin.toml`, and the tests on Linux, Windows and macOS.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

@@ -17,8 +17,21 @@ test('tierOf rounds down and picks the threshold token', () => {
 
 test('reportArgs sets one token and clears the other two', () => {
   assert.deepEqual(reportArgs('w0:p7', 55.2, 123), [
-    'pane', 'report-metadata', 'w0:p7', '--source', 'agents-ctx', '--seq', '123',
-    '--token', 'ctx_mid=55%', '--ttl-ms', '600000', '--clear-token', 'ctx_lo', '--clear-token', 'ctx_hi',
+    'pane',
+    'report-metadata',
+    'w0:p7',
+    '--source',
+    'agents-ctx',
+    '--seq',
+    '123',
+    '--token',
+    'ctx_mid=55%',
+    '--ttl-ms',
+    '600000',
+    '--clear-token',
+    'ctx_lo',
+    '--clear-token',
+    'ctx_hi',
   ]);
 });
 
@@ -28,12 +41,18 @@ test('contextPctFromPayload prefers used_percentage', () => {
 });
 
 test('contextPctFromPayload falls back to tokens over context_window_size', () => {
-  assert.equal(contextPctFromPayload({
-    context_window: { used_percentage: null, total_input_tokens: 50000, context_window_size: 200000 },
-  }), 25);
-  assert.equal(contextPctFromPayload({
-    context_window: { context_window_size: 200000, current_usage: { input_tokens: 100000 } },
-  }), 50);
+  assert.equal(
+    contextPctFromPayload({
+      context_window: { used_percentage: null, total_input_tokens: 50000, context_window_size: 200000 },
+    }),
+    25,
+  );
+  assert.equal(
+    contextPctFromPayload({
+      context_window: { context_window_size: 200000, current_usage: { input_tokens: 100000 } },
+    }),
+    50,
+  );
   assert.equal(contextPctFromPayload({ context_window: { total_input_tokens: 1 } }), null);
 });
 
@@ -42,8 +61,12 @@ test('claude-statusline passes the original output and exit status through', () 
   const env = { ...process.env };
   delete env.HERDR_PANE_ID;
   const input = JSON.stringify({ session_id: 's1', context_window: { used_percentage: 12.5 } });
-  const run = (...cmd) => spawnSync(process.execPath, [path.join(__dirname, 'agents-ctx.js'), 'claude-statusline', ...cmd],
-    { input, env, encoding: 'utf8' });
+  const run = (...cmd) =>
+    spawnSync(process.execPath, [path.join(__dirname, 'agents-ctx.js'), 'claude-statusline', ...cmd], {
+      input,
+      env,
+      encoding: 'utf8',
+    });
   const echo = run(process.execPath, '-e', 'process.stdin.pipe(process.stdout)');
   assert.equal(echo.stdout, input);
   assert.equal(echo.status, 0);
@@ -57,8 +80,12 @@ test('cursor-statusline passes the original output and exit status through', () 
   const env = { ...process.env };
   delete env.HERDR_PANE_ID;
   const input = JSON.stringify({ session_id: 's2', context_window: { used_percentage: 44.1 } });
-  const run = (...cmd) => spawnSync(process.execPath, [path.join(__dirname, 'agents-ctx.js'), 'cursor-statusline', ...cmd],
-    { input, env, encoding: 'utf8' });
+  const run = (...cmd) =>
+    spawnSync(process.execPath, [path.join(__dirname, 'agents-ctx.js'), 'cursor-statusline', ...cmd], {
+      input,
+      env,
+      encoding: 'utf8',
+    });
   const echo = run(process.execPath, '-e', 'process.stdin.pipe(process.stdout)');
   assert.equal(echo.stdout, input);
   assert.equal(echo.status, 0);

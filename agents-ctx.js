@@ -33,8 +33,19 @@ function tierOf(pct) {
 // overwrite a newer value, and `clear` always wins over earlier reports.
 function reportArgs(pane, pct, seq) {
   const { name, value } = tierOf(pct);
-  const args = ['pane', 'report-metadata', pane, '--source', SOURCE, '--seq', String(seq),
-    '--token', `${name}=${value}`, '--ttl-ms', String(TTL_MS)];
+  const args = [
+    'pane',
+    'report-metadata',
+    pane,
+    '--source',
+    SOURCE,
+    '--seq',
+    String(seq),
+    '--token',
+    `${name}=${value}`,
+    '--ttl-ms',
+    String(TTL_MS),
+  ];
   for (const t of TOKENS) if (t !== name) args.push('--clear-token', t);
   return args;
 }
@@ -55,7 +66,9 @@ function report(pane, pct) {
   const marker = path.join(os.tmpdir(), `herdr-agents-ctx-${pane.replace(/[^A-Za-z0-9_.-]/g, '_')}`);
   try {
     if (fs.readFileSync(marker, 'utf8') === key && Date.now() - fs.statSync(marker).mtimeMs < REREPORT_MS) return;
-  } catch { /* first report for this pane */ }
+  } catch {
+    /* first report for this pane */
+  }
   detach(HERDR, reportArgs(pane, pct, Date.now()));
   fs.writeFileSync(marker, key);
 }
@@ -83,13 +96,21 @@ function contextPctFromPayload(data) {
 function statuslineAdapter(cmd) {
   const input = fs.readFileSync(0);
   let data = {};
-  try { data = JSON.parse(input.toString('utf8')); } catch { /* not JSON: run the original only */ }
+  try {
+    data = JSON.parse(input.toString('utf8'));
+  } catch {
+    /* not JSON: run the original only */
+  }
   if (cmd.length) {
     const r = spawnSync(cmd[0], cmd.slice(1), { input, stdio: ['pipe', 'inherit', 'inherit'], windowsHide: true });
     process.exitCode = r.error ? 1 : (r.status ?? 1);
   }
   const pct = contextPctFromPayload(data);
-  try { report(process.env.HERDR_PANE_ID, pct); } catch { /* never break the status line */ }
+  try {
+    report(process.env.HERDR_PANE_ID, pct);
+  } catch {
+    /* never break the status line */
+  }
 }
 
 function claudeStatusline(cmd) {
@@ -115,8 +136,16 @@ function clear() {
   let n = 0;
   for (const p of herdr(['pane', 'list']).result.panes) {
     if (!ctxOf(p.tokens)) continue;
-    herdr(['pane', 'report-metadata', p.pane_id, '--source', SOURCE, '--seq', String(Date.now()),
-      ...TOKENS.flatMap((t) => ['--clear-token', t])]);
+    herdr([
+      'pane',
+      'report-metadata',
+      p.pane_id,
+      '--source',
+      SOURCE,
+      '--seq',
+      String(Date.now()),
+      ...TOKENS.flatMap((t) => ['--clear-token', t]),
+    ]);
     n++;
   }
   console.log(`cleared context tokens on ${n} pane(s)`);
@@ -128,7 +157,9 @@ function doctor() {
   for (const a of agents) {
     const t = ctxOf(a.tokens);
     const label = (a.tokens && a.tokens.tl) || a.name || '';
-    console.log(`${a.pane_id.padEnd(8)} ${String(a.agent).padEnd(8)} ${(t ? `${t}=${a.tokens[t]}` : '-').padEnd(14)} ${label}`);
+    console.log(
+      `${a.pane_id.padEnd(8)} ${String(a.agent).padEnd(8)} ${(t ? `${t}=${a.tokens[t]}` : '-').padEnd(14)} ${label}`,
+    );
   }
   if (!agents.some((a) => ctxOf(a.tokens))) {
     console.log('No context tokens. See "Agents" in the README for how to connect each agent.');

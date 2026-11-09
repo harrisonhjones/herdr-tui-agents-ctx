@@ -18,7 +18,7 @@ herdr has no event that carries an agent's context usage, so each agent gets an 
 inside the agent's pane, where herdr sets `HERDR_PANE_ID`.
 
 It runs side by side with [herdr-tui-agent-tree](https://github.com/harrisonhjones/herdr-tui-agent-tree): each writes
-its own tokens under its own source (this one is `agents-ctx`), so neither one's updates or `clear` touch the other.
+its own tokens under its own source (this one is `agents-ctx`), so neither one overwrites the other's.
 
 Requires herdr >= 0.9.5 and Node (any recent version) on PATH. It is pure Node and calls herdr through `HERDR_BIN_PATH`.
 Unit tests run in CI on Linux, Windows and macOS. Used with a live herdr on Linux and Windows, not yet macOS. Config
@@ -32,8 +32,8 @@ path outside Windows: `~/.config/herdr/config.toml`.
    herdr plugin link /path/to/this/folder
    ```
 
-   Linking adds the `clear` and `doctor` actions. The adapters are what write the tokens, and they work whether or not
-   the plugin is linked.
+   Linking adds the `doctor` action. The adapters are what write the tokens, and they work whether or not the plugin
+   is linked.
 2. Add the tokens to your sidebar layout (below).
 3. Connect each agent you use (see [Agents](#agents)).
 
@@ -67,20 +67,20 @@ connected have none of them, and their rows don't change.
 ## Actions
 
 - `herdr plugin action invoke harrisonhjones.herdr-tui-agents-ctx.doctor` prints each agent's pane, kind, context token
-  and label, changing nothing.
-- `...clear` removes every token this plugin wrote. Each agent sets its token again on its next report once the value
-  changes, or within 5 minutes.
+  and label, changing nothing. Its output is in the run's entry in `herdr plugin log list`.
 
 ## Notes
 
 - The herdr call runs detached, so it never holds up the agent. It is only made when the value changes, or when the
   last report is over 5 minutes old. A marker in the temp dir (`herdr-agents-ctx-<pane>`) records the last report.
-- Tokens have a 10-minute TTL, so an agent that stops reporting (for example, idle with nothing happening) loses its
-  percentage until it next reports.
+- Tokens have a 10-minute TTL, so a percentage disappears 10 minutes after its agent stops reporting, for example
+  once the agent exits. There is no clear action because of this: disconnecting an agent is enough.
 - The percentage is rounded down, so 79.9% is shown as `79%`, in the 50-79% colour.
 - Each report uses the millisecond clock as its `--seq`, so an older detached call can't overwrite a newer value.
+  herdr then ignores any report with a lower `--seq` from the same source on that pane, so don't report by hand with a
+  larger one: that pane's percentage would stop updating until the pane closes.
 - Tests: `node --test`.
-- To uninstall cleanly: disconnect each agent (see its section), run `clear`,
+- To uninstall: disconnect each agent (see its section), run
   `herdr plugin unlink harrisonhjones.herdr-tui-agents-ctx`, and remove the `$ctx_*` entries from your config.
 
 ## Agents

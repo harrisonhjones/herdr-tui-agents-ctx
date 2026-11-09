@@ -6,7 +6,7 @@
 // Usage:
 //   node agents-ctx.js claude-statusline <original status line command...>   (Claude Code statusLine.command)
 //   node agents-ctx.js cursor-statusline <original status line command...>   (Cursor CLI statusLine.command)
-//   node agents-ctx.js clear|doctor                                            (plugin actions)
+//   node agents-ctx.js doctor                                                  (plugin action)
 'use strict';
 const { spawn, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -30,7 +30,7 @@ function tierOf(pct) {
 }
 
 // The millisecond clock is the sequence number, so a slower detached call can't
-// overwrite a newer value, and `clear` always wins over earlier reports.
+// overwrite a newer value.
 function reportArgs(pane, pct, seq) {
   const { name, value } = tierOf(pct);
   const args = [
@@ -130,27 +130,6 @@ function herdr(args) {
 
 const ctxOf = (tokens) => TOKENS.find((t) => tokens && tokens[t] != null);
 
-// Remove every token this plugin wrote. Each agent sets its token again on its next report
-// once the value changes, or within REREPORT_MS.
-function clear() {
-  let n = 0;
-  for (const p of herdr(['pane', 'list']).result.panes) {
-    if (!ctxOf(p.tokens)) continue;
-    herdr([
-      'pane',
-      'report-metadata',
-      p.pane_id,
-      '--source',
-      SOURCE,
-      '--seq',
-      String(Date.now()),
-      ...TOKENS.flatMap((t) => ['--clear-token', t]),
-    ]);
-    n++;
-  }
-  console.log(`cleared context tokens on ${n} pane(s)`);
-}
-
 // Print each agent's context token, changing nothing.
 function doctor() {
   const agents = herdr(['agent', 'list']).result.agents;
@@ -170,9 +149,8 @@ function main() {
   const [mode, ...rest] = process.argv.slice(2);
   if (mode === 'claude-statusline') return claudeStatusline(rest);
   if (mode === 'cursor-statusline') return cursorStatusline(rest);
-  if (mode === 'clear') return clear();
   if (mode === 'doctor') return doctor();
-  console.error('usage: node agents-ctx.js claude-statusline | cursor-statusline <command...> | clear | doctor');
+  console.error('usage: node agents-ctx.js claude-statusline | cursor-statusline <command...> | doctor');
   process.exitCode = 2;
 }
 
